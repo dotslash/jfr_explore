@@ -1,6 +1,12 @@
 In this blog post, we will discuss how lock contention can be observed in java thread dumps. As part of the process, we will
 also describe one mechanism to emit JFRs for the java process.
 
+# TL;DR
+
+We can use thread dumps to understand observe lock contention in java. `Lock` objects make it possible to understand
+which threads are waiting for lock. `synchronized` blocks go one step further and also tell the thread that is holding
+the lock.
+
 # Setup
 
 ### Options for locking in Java
@@ -72,9 +78,6 @@ $ jfr summary jfr/lock-1715525551030.jfr
  jdk.ActiveSetting                              301          9801
  jdk.LongFlag                                   229          8441
  jdk.UnsignedLongFlag                           182          6811
- jdk.ModuleRequire                              156          2028
- jdk.ClassLoaderStatistics                       34           980
- jdk.ThreadAllocationStatistics                  28           388
  ...
  jdk.ThreadDump                                  10        150329
  ...
@@ -180,6 +183,11 @@ The summary is that
 1. All the 3 mechanisms will show light on the threads that are blocked on a given lock
 2. Synchronzed though goes one step further and also tells the thread that is holding the lock
 
+The thread entries in the thread dump will look like this. For more details checkout 
+[lock-1715525551030.jfr_thread_dump.txt](lock-1715525551030.jfr_thread_dump.txt), 
+[tryLock-1715525540531.jfr_thread_dump.txt](tryLock-1715525540531.jfr_thread_dump.txt) and 
+[synchronized-1715525561096.jfr_thread_dump.txt](synchronized-1715525561096.jfr_thread_dump.txt)
+
 ```
 ---------------------------lock-----------------------------------
 # Blocked thread looks like this for lock
@@ -207,7 +215,7 @@ at io.github.dotslash.Main.useSync(Main.java:37)
 - locked <0x00000003ff83d4e8> (a io.github.dotslash.Main)
 ```
 
-You can use grep to estimate the extent of the lock contention 
+You can use grep to estimate the extent of the lock contention
 
 ```
 $ grep 0x00000003ff83d670 lock-1715525551030.jfr_thread_dump.txt  | sort | uniq -c
